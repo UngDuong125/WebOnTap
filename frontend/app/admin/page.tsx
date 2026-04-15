@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { TAG_MAP } from '../../lib/tags';
+import { TAG_MAP } from '../../constants/tags';
+import { apiUrl } from '../../lib/api';
 
 type Question = {
   type: 'MCQ' | 'FILL';
@@ -43,7 +44,6 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
-
   const [title, setTitle] = useState('');
   const [tag, setTag] = useState<(typeof tags)[number]>('math');
   const [displayCount, setDisplayCount] = useState(5);
@@ -89,13 +89,13 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    fetchQuizzes();
-    fetchUsers();
+    void fetchQuizzes();
+    void fetchUsers();
   }, [user?.id]);
 
   async function fetchQuizzes() {
     setLoading(true);
-    const response = await fetch('/api/admin/quizzes');
+    const response = await fetch(apiUrl('/api/admin/quizzes'));
     if (!response.ok) {
       setMessage('Không thể tải danh sách đề thi.');
       setLoading(false);
@@ -106,7 +106,7 @@ export default function AdminPage() {
   }
 
   async function fetchUsers() {
-    const response = await fetch('/api/admin/users');
+    const response = await fetch(apiUrl('/api/admin/users'));
     if (!response.ok) return;
     const payload = await response.json();
     const list = Array.isArray(payload) ? payload : [];
@@ -118,8 +118,7 @@ export default function AdminPage() {
     if (!user?.id) return;
     setCreating(true);
     setMessage(null);
-
-    const response = await fetch('/api/admin/quizzes', {
+    const response = await fetch(apiUrl('/api/admin/quizzes'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -132,20 +131,18 @@ export default function AdminPage() {
         targetUserIds: isGlobalTarget ? [] : selectedTargetIds,
       }),
     });
-
     setCreating(false);
     const payload = await response.json();
     if (!response.ok) {
       setMessage(Array.isArray(payload?.details) ? `${payload.error} ${payload.details.join(' | ')}` : payload?.error ?? 'Khong the tao bo de.');
       return;
     }
-
     setMessage('Đã tạo bộ đề thành công. Bạn có thể vào Editor Mode để chỉnh sửa.');
     setTitle('');
     setRawText('');
     setIsGlobalTarget(true);
     setSelectedTargetIds([]);
-    fetchQuizzes();
+    await fetchQuizzes();
   }
 
   function openEditor(quiz: QuizRow) {
@@ -164,7 +161,7 @@ export default function AdminPage() {
     if (!editingQuizId) return;
     setSavingEditor(true);
     const totalDisplay = Object.values(editorCategoryCounts).reduce((sum, item) => sum + Math.max(0, Number(item) || 0), 0);
-    const response = await fetch('/api/admin/quizzes', {
+    const response = await fetch(apiUrl('/api/admin/quizzes'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -195,7 +192,7 @@ export default function AdminPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch(apiUrl('/api/upload'), {
         method: 'POST',
         body: formData,
       });
@@ -226,7 +223,7 @@ export default function AdminPage() {
   }
 
   async function handlePublish(quizId: string, isPublished: boolean) {
-    const response = await fetch('/api/admin/quizzes', {
+    const response = await fetch(apiUrl('/api/admin/quizzes'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quizId, isPublished }),
@@ -240,7 +237,7 @@ export default function AdminPage() {
   }
 
   async function handleDeleteQuiz(quizId: string) {
-    const response = await fetch(`/api/admin/quizzes?quizId=${encodeURIComponent(quizId)}`, { method: 'DELETE' });
+    const response = await fetch(apiUrl(`/api/admin/quizzes?quizId=${encodeURIComponent(quizId)}`), { method: 'DELETE' });
     if (!response.ok) {
       setMessage('Không thể xóa bộ đề.');
       return;
@@ -249,7 +246,7 @@ export default function AdminPage() {
   }
 
   async function handleUpdateTargets(quizId: string, isGlobal: boolean, targetUserIds: string[]) {
-    const response = await fetch('/api/admin/quizzes', {
+    const response = await fetch(apiUrl('/api/admin/quizzes'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quizId, isGlobal, targetUserIds }),
@@ -298,22 +295,20 @@ export default function AdminPage() {
             <input type="number" min={1} value={displayCount} onChange={(event) => setDisplayCount(Number(event.target.value))} className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3" />
           </div>
           <textarea value={rawText} onChange={(event) => setRawText(event.target.value)} rows={8} className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3" />
-          <div className="space-y-3 rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={isGlobalTarget} onChange={(event) => setIsGlobalTarget(event.target.checked)} />
-              Phân phối cho tất cả người dùng
-            </label>
-            {!isGlobalTarget ? (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {users.map((item) => (
-                  <label key={item.id} className="flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2 text-sm">
-                    <input type="checkbox" checked={selectedTargetIds.includes(item.id)} onChange={() => toggleTargetUser(item.id)} />
-                    {item.username}
-                  </label>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={isGlobalTarget} onChange={(event) => setIsGlobalTarget(event.target.checked)} />
+            Phân phối cho tất cả người dùng
+          </label>
+          {!isGlobalTarget ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {users.map((item) => (
+                <label key={item.id} className="flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2 text-sm">
+                  <input type="checkbox" checked={selectedTargetIds.includes(item.id)} onChange={() => toggleTargetUser(item.id)} />
+                  {item.username}
+                </label>
+              ))}
+            </div>
+          ) : null}
           <button disabled={creating} className="rounded-xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 disabled:opacity-60">
             {creating ? 'Đang tạo...' : 'Tạo bộ đề'}
           </button>
@@ -495,7 +490,6 @@ export default function AdminPage() {
           </div>
         )}
       </section>
-
       {message ? <p className="mt-6 rounded-2xl border border-slate-700 bg-slate-900/90 px-4 py-3 text-sm text-amber-300">{message}</p> : null}
     </main>
   );

@@ -1,39 +1,51 @@
 # Quiz Master
 
-Ung dung Next.js + Tailwind CSS cho he thong quiz do admin bien soan, quan ly EXP theo tag va bang xep hang.
+Hệ thống đã được tách thành **2 app chạy độc lập**:
 
-## Tính năng chính
+- `frontend/`: Next.js (UI) - chạy mặc định ở `http://localhost:3000`
+- `backend/`: Express API - chạy mặc định ở `http://localhost:4000`
 
-- Đăng nhập bằng `username` (chỉ người dùng đã tồn tại mới đăng nhập được).
-- Admin tao de tu du lieu raw text theo dinh dang cot `|`.
-- Admin co the phan phoi de cho tat ca hoac nhieu user muc tieu.
-- Lưu `high_score` và cộng EXP theo mức vượt kỷ lục.
-- Bảng xếp hạng người dùng theo tổng EXP.
-- Admin panel quan ly publish bo de cho user.
+## Chạy từng app
 
-## Cài đặt
-
-1. Sao chép tệp `.env.example` sang `.env`.
-2. Dien gia tri Supabase va Cloudinary neu can upload anh.
-3. Cài đặt gói:
+1. Cài dependencies cho từng app:
 
 ```bash
-npm install
+npm install --prefix frontend
+npm install --prefix backend
 ```
 
-4. Chạy ứng dụng:
+2. Tạo môi trường:
+
+- `backend/.env` từ `backend/.env.example`
+- `frontend/.env.local` với:
 
 ```bash
-npm run dev
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
 ```
+
+3. Chạy backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Chạy frontend:
+
+```bash
+npm run dev:frontend
+```
+
+## API chính (backend)
+
+- `POST /api/auth/login`
+- `GET, PATCH /api/quizzes`
+- `GET, POST, PATCH, DELETE /api/admin/quizzes`
+- `GET, PATCH, DELETE /api/admin/users`
+- `GET /api/leaderboard`
+- `POST /api/upload`
 
 ## Yêu cầu Supabase
 
-Tạo 2 bảng theo `supabase/schema.sql`:
+Tạo bảng theo `supabase/schema.sql`:
 - `users`
 - `quizzes`
-
-## Ghi chu
-
-- User chi duoc lam cac bo de da `is_published = true`.
-- Admin tao de trong trang `/admin`, kiem tra va nhan publish.

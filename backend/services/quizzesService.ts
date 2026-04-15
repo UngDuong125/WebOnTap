@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createRouteSupabaseClient } from '../../../lib/supabaseClient';
-import { TagKey } from '../../../lib/types';
+import { createRouteSupabaseClient } from '../lib/supabaseClient';
+import { TagKey } from '../types/domain';
 
 export async function GET(request: Request) {
   const response = NextResponse.next();

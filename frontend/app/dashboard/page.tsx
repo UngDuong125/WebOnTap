@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { TAG_MAP } from '../../lib/tags';
+import { TAG_MAP } from '../../constants/tags';
+import { apiUrl } from '../../lib/api';
 
 type Question = {
   type: 'MCQ' | 'FILL';
@@ -48,7 +49,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    fetchPublishedQuizzes(user.id);
+    void fetchPublishedQuizzes(user.id);
   }, [user?.id]);
 
   function shuffleQuestions(items: Question[]) {
@@ -135,7 +136,7 @@ export default function DashboardPage() {
 
   async function fetchPublishedQuizzes(userId: string) {
     setLoading(true);
-    const response = await fetch(`/api/quizzes?userId=${encodeURIComponent(userId)}`);
+    const response = await fetch(apiUrl(`/api/quizzes?userId=${encodeURIComponent(userId)}`));
     if (!response.ok) {
       setMessage('Không thể tải danh sách đề.');
       setLoading(false);
@@ -157,7 +158,7 @@ export default function DashboardPage() {
       return acc + (isCorrectAnswer(question, answers[index] ?? '') ? 1 : 0);
     }, 0);
 
-    const response = await fetch('/api/quizzes', {
+    const response = await fetch(apiUrl('/api/quizzes'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -284,12 +285,12 @@ export default function DashboardPage() {
                 Nộp bài
               </button>
               <button
-                  type="button"
-                  onClick={handleRegenerateQuiz}
-                  className="rounded-xl border border-cyan-500 px-5 py-2 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
-                >
-                  Làm lại đề mới
-                </button>
+                type="button"
+                onClick={handleRegenerateQuiz}
+                className="rounded-xl border border-cyan-500 px-5 py-2 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
+              >
+                Làm lại đề mới
+              </button>
             </form>
           )}
         </div>

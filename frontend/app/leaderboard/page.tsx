@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../../lib/api';
 
 type LeaderboardRow = {
   id: string;
@@ -20,7 +21,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     async function fetchLeaderboard() {
-      const response = await fetch('/api/leaderboard');
+      const response = await fetch(apiUrl('/api/leaderboard'));
       if (response.ok) {
         const data = await response.json();
         setRows(data);
@@ -28,7 +29,7 @@ export default function LeaderboardPage() {
       setLoading(false);
     }
 
-    fetchLeaderboard();
+    void fetchLeaderboard();
   }, []);
 
   return (
