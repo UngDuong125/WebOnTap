@@ -34,6 +34,15 @@ export default function DashboardPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [scoreMessage, setScoreMessage] = useState<string | null>(null);
+  const [wrongAnswers, setWrongAnswers] = useState<
+    Array<{
+      questionNumber: number;
+      questionText: string;
+      userAnswer: string;
+      correctAnswer: string;
+      explanation: string;
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [attemptSeed, setAttemptSeed] = useState(0);
 
@@ -106,6 +115,7 @@ export default function DashboardPage() {
   function handleRegenerateQuiz() {
     setAnswers({});
     setScoreMessage(null);
+    setWrongAnswers([]);
     setMessage(null);
     setAttemptSeed((prev) => prev + 1);
   }
@@ -134,6 +144,19 @@ export default function DashboardPage() {
     return false;
   }
 
+  function getCorrectAnswerText(question: Question) {
+    const normalizedAnswer = normalizeAnswer(question.answer);
+    if (question.type === 'MCQ') {
+      const letters = ['a', 'b', 'c', 'd'];
+      const optionIndex = letters.indexOf(normalizedAnswer);
+      if (optionIndex >= 0 && question.options[optionIndex]) {
+        const letter = String.fromCharCode(65 + optionIndex);
+        return `${letter}. ${question.options[optionIndex]}`;
+      }
+    }
+    return question.answer;
+  }
+
   async function fetchPublishedQuizzes(userId: string) {
     setLoading(true);
     const response = await fetch(apiUrl(`/api/quizzes?userId=${encodeURIComponent(userId)}`));
@@ -154,9 +177,28 @@ export default function DashboardPage() {
     if (!selectedQuiz || !user) return;
 
     const total = visibleQuestions.length;
+    const wrong: Array<{
+      questionNumber: number;
+      questionText: string;
+      userAnswer: string;
+      correctAnswer: string;
+      explanation: string;
+    }> = [];
     const correct = visibleQuestions.reduce((acc, question, index) => {
-      return acc + (isCorrectAnswer(question, answers[index] ?? '') ? 1 : 0);
+      const userAnswer = answers[index] ?? '';
+      const isCorrect = isCorrectAnswer(question, userAnswer);
+      if (!isCorrect) {
+        wrong.push({
+          questionNumber: index + 1,
+          questionText: question.question_text,
+          userAnswer: userAnswer.trim() || '(Bạn chưa trả lời)',
+          correctAnswer: getCorrectAnswerText(question),
+          explanation: question.explanation || '',
+        });
+      }
+      return acc + (isCorrect ? 1 : 0);
     }, 0);
+    setWrongAnswers(wrong);
 
     const response = await fetch(apiUrl('/api/quizzes'), {
       method: 'PATCH',
@@ -206,6 +248,7 @@ export default function DashboardPage() {
                     setSelectedQuiz(quiz);
                     setAnswers({});
                     setScoreMessage(null);
+                    setWrongAnswers([]);
                     setMessage(null);
                     setAttemptSeed((prev) => prev + 1);
                   }}
@@ -280,6 +323,22 @@ export default function DashboardPage() {
               ))}
 
               {scoreMessage ? <p className="text-sm text-cyan-300">{scoreMessage}</p> : null}
+              {scoreMessage && wrongAnswers.length > 0 ? (
+                <section className="space-y-3 rounded-2xl border border-rose-800/60 bg-rose-950/30 p-4">
+                  <h3 className="text-sm font-semibold text-rose-200">Câu làm sai ({wrongAnswers.length})</h3>
+                  <div className="space-y-3">
+                    {wrongAnswers.map((item) => (
+                      <article key={item.questionNumber} className="rounded-xl border border-rose-900/60 bg-slate-950/60 p-3 text-sm">
+                        <p className="font-semibold text-slate-100">Câu {item.questionNumber}</p>
+                        <p className="mt-1 text-slate-300">{item.questionText}</p>
+                        <p className="mt-2 text-rose-300">Bạn chọn: {item.userAnswer}</p>
+                        <p className="text-emerald-300">Đáp án đúng: {item.correctAnswer}</p>
+                        {item.explanation ? <p className="mt-1 text-slate-400">Giải thích: {item.explanation}</p> : null}
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
               {message ? <p className="text-sm text-rose-300">{message}</p> : null}
               <button type="submit" className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400">
                 Nộp bài
